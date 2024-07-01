@@ -1,5 +1,5 @@
 import pypianoroll # change in outputs.py
-from mido import MidiFile
+from mido import MidiFile # TODO: inconflict with line 14?
 import os
 from copy import deepcopy
 import matplotlib.pyplot as plt
