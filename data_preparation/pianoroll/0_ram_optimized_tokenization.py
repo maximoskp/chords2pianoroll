@@ -4,7 +4,6 @@ import os
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
-from BinaryTokenizer import BinaryTokenizer
 from tqdm import tqdm
 import io
 # https://copyprogramming.com/howto/convert-bytes-into-bufferedreader-object-in-python
