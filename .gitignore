@@ -2,6 +2,8 @@ data/
 test_data/
 old/
 
+chroma_accompaniment_sentences.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

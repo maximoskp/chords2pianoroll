@@ -88,23 +88,23 @@ class SimpleSerialChromaTokenizer(PreTrainedTokenizerBase):
         segment_idx = 0
         tokens.append( self.bos_token)
         ids.append( self.vocab[ self.bos_token ] )
-        tokens.append( 'seg_' + str( self.segment_offset + segment_idx ) )
+        tokens.append( 'seg_' + str( segment_idx ) )
         ids.append(self.segment_offset + segment_idx)
         if self.max_num_segments > 0:
             segment_idx += 1
             segment_idx = segment_idx % self.max_num_segments
         for i in range(chroma.shape[0]):
+            if self.max_num_segments > 0:
+                segment_idx += 1
+                segment_idx = segment_idx % self.max_num_segments
             # check if chord pcs exist
             c = chroma[i,:]
             nzc = np.nonzero(c)[0]
             for i in range(nzc.shape[0]):
                 tokens.append( 'c_' + str(nzc[i]) )
-                ids.append( nzc[i] + self.chord_offset )
-            tokens.append( 'seg_' + str( self.segment_offset + segment_idx ) )
+                ids.append( int(nzc[i] + self.chord_offset) )
+            tokens.append( 'seg_' + str( segment_idx ) )
             ids.append(self.segment_offset + segment_idx)
-            if self.max_num_segments > 0:
-                segment_idx += 1
-                segment_idx = segment_idx % self.max_num_segments
         return tokens, ids
     # end sequence_serialization
 # end class SimpleSerialChromaTokenizer
