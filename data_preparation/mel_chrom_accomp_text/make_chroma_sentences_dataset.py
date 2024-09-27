@@ -102,12 +102,7 @@ def split_melody_accompaniment(pypianoroll_structure):
     return melody_piece, accomp_piece
 # end split_melody_accompaniment
 
-# open the txt to write to
-with open('chroma_accompaniment_sentences.txt', 'w') as the_file:
-    the_file.write('')
-
-for i in tqdm(range(len( datalist ))):
-    main_piece = pypianoroll.read(datafolder + os.sep + datalist[i], resolution=resolution)
+def chroma_from_pianoroll(main_piece, resolution=24):
     # make deepcopy
     new_piece = deepcopy(main_piece)
     # keep accompaniment
@@ -135,6 +130,25 @@ for i in tqdm(range(len( datalist ))):
             chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
         else:
             chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
-    tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
-    with open('chroma_accompaniment_sentences.txt', 'a') as the_file:
-        the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
+    return chroma_zoomed_out
+# end chroma_from_pianoroll
+
+# open the txt to write to
+with open('chroma_accompaniment_sentences.txt', 'w') as the_file:
+    the_file.write('')
+
+# also keep a txt with pieces that are problematic
+with open('pianoroll_error_pieces.txt', 'w') as the_file:
+    the_file.write('')
+
+for i in tqdm(range(len( datalist ))):
+    try:
+        main_piece = pypianoroll.read(datafolder + os.sep + datalist[i], resolution=resolution)
+        chroma_zoomed_out = chroma_from_pianoroll(main_piece, resolution=resolution)
+        tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
+        with open('chroma_accompaniment_sentences.txt', 'a') as the_file:
+            the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
+    except:
+        print('ERROR with ', datalist[i])
+        with open('pianoroll_error_pieces.txt', 'a') as the_file:
+            the_file.write(datalist[i] + '\n')
