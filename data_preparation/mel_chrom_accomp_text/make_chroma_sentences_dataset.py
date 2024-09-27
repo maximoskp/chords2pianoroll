@@ -103,18 +103,14 @@ def split_melody_accompaniment(pypianoroll_structure):
 # end split_melody_accompaniment
 
 def chroma_from_pianoroll(main_piece, resolution=24):
-    # make deepcopy
-    new_piece = deepcopy(main_piece)
-    # keep accompaniment
-    _, accomp_piece = split_melody_accompaniment(new_piece)
     # first binarize a new deep copy
-    binary_piece = deepcopy(accomp_piece)
+    binary_piece = deepcopy(main_piece)
     binary_piece.binarize()
     # make chroma
     chroma = binary_piece.tracks[0].pianoroll[:,:12]
     for i in range(12, 128-12, 12):
-        chroma = np.logical_or(chroma, accomp_piece.tracks[0].pianoroll[:,i:(i+12)])
-    chroma[:,-6:] = np.logical_or(chroma[:,-6:], accomp_piece.tracks[0].pianoroll[:,-6:])
+        chroma = np.logical_or(chroma, binary_piece.tracks[0].pianoroll[:,i:(i+12)])
+    chroma[:,-6:] = np.logical_or(chroma[:,-6:], binary_piece.tracks[0].pianoroll[:,-6:])
     # quarter chroma resolution
     chroma_tmp = np.zeros( (1,12) )
     chroma_zoomed_out = None
@@ -144,7 +140,11 @@ with open('pianoroll_error_pieces.txt', 'w') as the_file:
 for i in tqdm(range(len( datalist ))):
     try:
         main_piece = pypianoroll.read(datafolder + os.sep + datalist[i], resolution=resolution)
-        chroma_zoomed_out = chroma_from_pianoroll(main_piece, resolution=resolution)
+        # make deepcopy
+        new_piece = deepcopy(main_piece)
+        # keep accompaniment
+        _, accomp_piece = split_melody_accompaniment(new_piece)
+        chroma_zoomed_out = chroma_from_pianoroll(accomp_piece, resolution=resolution)
         tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
         with open('chroma_accompaniment_sentences.txt', 'a') as the_file:
             the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
