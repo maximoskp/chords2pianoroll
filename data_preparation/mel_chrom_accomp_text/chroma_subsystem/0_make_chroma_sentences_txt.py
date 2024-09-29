@@ -129,12 +129,17 @@ def chroma_from_pianoroll(main_piece, resolution=24):
     return chroma_zoomed_out
 # end chroma_from_pianoroll
 
+os.makedirs('../../data', exist_ok=True)
+
+sentences_file_path = '../../data/chroma_accompaniment_sentences.txt'
+error_log_file_path = '../../data/pianoroll_error_pieces.txt'
+
 # open the txt to write to
-with open('chroma_accompaniment_sentences.txt', 'w') as the_file:
+with open(sentences_file_path, 'w', encoding='utf-8') as the_file:
     the_file.write('')
 
 # also keep a txt with pieces that are problematic
-with open('pianoroll_error_pieces.txt', 'w') as the_file:
+with open(error_log_file_path, 'w') as the_file:
     the_file.write('')
 
 for i in tqdm(range(len( datalist ))):
@@ -146,9 +151,9 @@ for i in tqdm(range(len( datalist ))):
         _, accomp_piece = split_melody_accompaniment(new_piece)
         chroma_zoomed_out = chroma_from_pianoroll(accomp_piece, resolution=resolution)
         tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
-        with open('chroma_accompaniment_sentences.txt', 'a') as the_file:
+        with open(sentences_file_path, 'a', encoding='utf-8') as the_file:
             the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
     except:
         print('ERROR with ', datalist[i])
-        with open('pianoroll_error_pieces.txt', 'a') as the_file:
+        with open(error_log_file_path, 'a') as the_file:
             the_file.write(datalist[i] + '\n')
