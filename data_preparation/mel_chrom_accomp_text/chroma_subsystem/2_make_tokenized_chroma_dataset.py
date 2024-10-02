@@ -10,14 +10,7 @@ import pickle
 MAX_LENGTH = 1024
 
 # Load the trained tokenizer
-tokenizer = RobertaTokenizerFast.from_pretrained('../../data/chroma_tokenizer_1/' , max_len=MAX_LENGTH)
-
-# Data collator for MLM (will handle random masking)
-data_collator = DataCollatorForLanguageModeling(
-    tokenizer=tokenizer,
-    mlm=True,
-    mlm_probability=0.15
-)
+tokenizer = RobertaTokenizerFast.from_pretrained('../../data/chroma_wordlevel_tokenizer/' , max_len=MAX_LENGTH)
 
 sentences_file_path = '../../data/chroma_accompaniment_sentences.txt'
 
@@ -30,7 +23,7 @@ sentences = [line.strip() for line in lines if line.strip()]
 
 # Tokenize each sentence
 tokenized_sentences = []
-for sentence in tqdm(sentences[:10]):
+for sentence in tqdm(sentences):
     tokenized = tokenizer(
         sentence,
         max_length=MAX_LENGTH,

@@ -6,7 +6,7 @@ from tokenizers.trainers import BpeTrainer
 tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
 
 # Define a trainer with vocab size and other parameters
-trainer = BpeTrainer(vocab_size=1000, min_frequency=2, special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"])
+trainer = BpeTrainer(vocab_size=100, min_frequency=2, special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"])
 
 sentences_file_path = '../../data/chroma_accompaniment_sentences.txt'
 
@@ -23,4 +23,5 @@ print('num sentences: ', len(corpus))
 tokenizer.train_from_iterator(corpus, trainer=trainer)
 
 # Save the tokenizer to a directory
-tokenizer.save_pretrained("../data/chroma_tokenizer")
+# tokenizer.save_pretrained("../data/chroma_tokenizer")
+tokenizer.save_model("../data/chroma_tokenizer")
