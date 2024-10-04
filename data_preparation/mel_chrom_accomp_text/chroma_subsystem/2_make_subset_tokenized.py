@@ -23,7 +23,7 @@ sentences = [line.strip() for line in lines if line.strip()]
 
 # Tokenize each sentence
 tokenized_sentences = []
-for sentence in tqdm(sentences):
+for sentence in tqdm(sentences[:100]):
     tokenized = tokenizer(
         sentence,
         max_length=MAX_LENGTH,
@@ -68,5 +68,5 @@ chroma_dataset = {
     'test_dataset': test_dataset
 }
 
-with open('../../data/chroma_dataset.pickle', 'wb') as handle:
+with open('../../data/chroma_dataset_part.pickle', 'wb') as handle:
     pickle.dump(chroma_dataset, handle, protocol=pickle.HIGHEST_PROTOCOL)

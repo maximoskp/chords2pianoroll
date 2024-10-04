@@ -20,23 +20,39 @@ data_collator = DataCollatorForLanguageModeling(
 # Roberta-MED
 model_config = RobertaConfig(
     vocab_size=tokenizer.vocab_size,
-    hidden_size=512,
-    num_hidden_layers=8,
-    num_attention_heads=8,
+    hidden_size=256,
+    num_hidden_layers=4,
+    num_attention_heads=4,
     pad_token_id=tokenizer.pad_token_id,
     bos_token_id=tokenizer.bos_token_id,
     eos_token_id=tokenizer.eos_token_id,
     mask_token_id=tokenizer.mask_token_id,
-    max_position_embeddings=MAX_LENGTH,
+    max_position_embeddings=2048,
 )
 
 model = RobertaForMaskedLM(model_config)
 
 with open('../../data/chroma_dataset.pickle', "rb") as input_file:
     chroma_dataset = pickle.load(input_file)
+# with open('../../data/chroma_dataset_part.pickle', "rb") as input_file:
+#     chroma_dataset = pickle.load(input_file)
 
 train_dataset = chroma_dataset['train_dataset']
 test_dataset = chroma_dataset['test_dataset']
+
+# print('1')
+# # train_dataset = {}
+# train_dataset['input_ids'] = train_dataset['input_ids'][:100]
+# print('2')
+# train_dataset['attention_mask'] = train_dataset['attention_mask'][:100]
+# print('3')
+# # test_dataset = {}
+# test_dataset['input_ids'] = test_dataset['input_ids'][:100]
+# print('4')
+# test_dataset['attention_mask'] = test_dataset['attention_mask'][:100]
+# print('5')
+
+print('train_dataset: ', len(train_dataset))
 
 def preprocess_logits_for_metrics(logits, labels):
     if isinstance(logits, tuple):
@@ -62,6 +78,7 @@ def compute_metrics(eval_preds):
 
 # Trainer
 USE_CUDA = cuda_available()
+# USE_CUDA = False
 if not cuda_available():
     print(f"NO 16-floats used")
     FP16 = FP16_EVAL = BF16 = BF16_EVAL = False
@@ -75,31 +92,37 @@ else:
     (f"FP16_float used")
 print(f"Using CUDA as {USE_CUDA}")
 
+batch_size = 50
+epoch = 10
+
 training_config = TrainingArguments(
-    output_dir="../../data/chroma_mlm_medium_3e-4_100",
+    output_dir="../../data/chroma_mlm_tiny_3e-4_100",
     overwrite_output_dir=False,
     do_train=True,
     do_eval=True,
     do_predict=False,
     evaluation_strategy="steps",
-    per_device_train_batch_size=64,
+    per_device_train_batch_size=batch_size,
     per_device_eval_batch_size=16,
-    gradient_accumulation_steps=8,  # for 1 device results in 512 bsz,
+    gradient_accumulation_steps=1,#8,  # for 1 device results in 512 bsz,
     eval_accumulation_steps=1,
     # gradient_accumulation_steps=8, # for 2 devices results in 1024 bsz,
     learning_rate=3e-4,
     weight_decay=0.01,
     max_grad_norm=0,
-    warmup_steps=1300,
+    warmup_steps=10,
     log_level="debug",
     lr_scheduler_type="linear",
     logging_strategy="steps",
-    max_steps=100*(673191//(64*8)),
+    # max_steps=100*(673191//(64*8)),
+    max_steps=(709356//batch_size)*epoch,
+    # max_steps=1000,
     # num_train_epochs=10,
     logging_steps=128,
-    logging_dir='./logs',
+    eval_steps=1024, # 4 each epoch would be about 3546
+    logging_dir='../../data/logs',
     save_strategy="steps",
-    save_steps=256,
+    save_steps=1024,
     save_total_limit=5,  # keeps 5 checkpoints only
     no_cuda=not USE_CUDA,
     seed=1993,
@@ -122,3 +145,5 @@ trainer = Trainer(
     preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     callbacks=None
 )
+
+train_result = trainer.train()
