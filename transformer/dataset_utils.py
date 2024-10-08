@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import Dataset
 
+from torch.nn.utils.rnn import pad_sequence
+
 # from ..data_preparation.mel_chrom_accomp_text.chroma_subsystem.BinaryTokenizer import SimpleSerialChromaTokenizer
 from BinaryTokenizer import SimpleSerialChromaTokenizer
 from miditok import REMI, TokenizerConfig
