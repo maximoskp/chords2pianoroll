@@ -1,29 +1,36 @@
-import pypianoroll
-import os
 import numpy as np
-import matplotlib.pyplot as plt
 from copy import deepcopy
-import numpy as np
-import torch
-from torch.utils.data import Dataset
 import io
 import symusic
-from tqdm import tqdm
 
-from BinaryTokenizer import BinaryTokenizer, SimpleSerialChromaTokenizer
-from miditok import REMI, TokenizerConfig
-from transformers import RobertaTokenizer, RobertaModel
+def chroma_from_pianoroll(main_piece, resolution=24):
+    # first binarize a new deep copy
+    binary_piece = deepcopy(main_piece)
+    binary_piece.binarize()
+    # make chroma
+    chroma = binary_piece.tracks[0].pianoroll[:,:12]
+    for i in range(12, 128-12, 12):
+        chroma = np.logical_or(chroma, binary_piece.tracks[0].pianoroll[:,i:(i+12)])
+    chroma[:,-6:] = np.logical_or(chroma[:,-6:], binary_piece.tracks[0].pianoroll[:,-6:])
+    # quarter chroma resolution
+    chroma_tmp = np.zeros( (1,12) )
+    chroma_zoomed_out = None
+    for i in range(chroma.shape[0]):
+        chroma_tmp += chroma[i,:]
+        if (i+1)%resolution == 0:
+            if chroma_zoomed_out is None:
+                chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
+            else:
+                chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
+    if np.sum( chroma_tmp ) > 0:
+        if chroma_zoomed_out is None:
+            chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
+        else:
+            chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
+    return chroma_zoomed_out
+# end chroma_from_pianoroll
 
-datafolder = '/media/maindisk/maximos/data/GiantMIDI-PIano/midis_v1.2/aug/midis'
-datalist = os.listdir( datafolder )
-print(len(datalist))
-
-resolution = 24
-# binary_tokenizer = BinaryTokenizer(num_digits=12)
-binary_tokenizer = SimpleSerialChromaTokenizer(max_num_segments=8)
-
-# TODO: get the following functions from midi_pianorol_utils.py
-def split_melody_accompaniment(pypianoroll_structure):
+def split_melody_accompaniment_from_pianoroll(pypianoroll_structure):
     melody_piece = deepcopy( pypianoroll_structure )
     accomp_piece = deepcopy( pypianoroll_structure )
 
@@ -103,58 +110,18 @@ def split_melody_accompaniment(pypianoroll_structure):
     return melody_piece, accomp_piece
 # end split_melody_accompaniment
 
-def chroma_from_pianoroll(main_piece, resolution=24):
-    # first binarize a new deep copy
-    binary_piece = deepcopy(main_piece)
-    binary_piece.binarize()
-    # make chroma
-    chroma = binary_piece.tracks[0].pianoroll[:,:12]
-    for i in range(12, 128-12, 12):
-        chroma = np.logical_or(chroma, binary_piece.tracks[0].pianoroll[:,i:(i+12)])
-    chroma[:,-6:] = np.logical_or(chroma[:,-6:], binary_piece.tracks[0].pianoroll[:,-6:])
-    # quarter chroma resolution
-    chroma_tmp = np.zeros( (1,12) )
-    chroma_zoomed_out = None
-    for i in range(chroma.shape[0]):
-        chroma_tmp += chroma[i,:]
-        if (i+1)%resolution == 0:
-            if chroma_zoomed_out is None:
-                chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
-            else:
-                chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
-    if np.sum( chroma_tmp ) > 0:
-        if chroma_zoomed_out is None:
-            chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
-        else:
-            chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
-    return chroma_zoomed_out
-# end chroma_from_pianoroll
-
-os.makedirs('../../data', exist_ok=True)
-
-sentences_file_path = '../../data/chroma_accompaniment_sentences.txt'
-error_log_file_path = '../../data/pianoroll_error_pieces.txt'
-
-# open the txt to write to
-with open(sentences_file_path, 'w', encoding='utf-8') as the_file:
-    the_file.write('')
-
-# also keep a txt with pieces that are problematic
-with open(error_log_file_path, 'w') as the_file:
-    the_file.write('')
-
-for i in tqdm(range(len( datalist ))):
-    try:
-        main_piece = pypianoroll.read(datafolder + os.sep + datalist[i], resolution=resolution)
-        # make deepcopy
-        new_piece = deepcopy(main_piece)
-        # keep accompaniment
-        _, accomp_piece = split_melody_accompaniment(new_piece)
-        chroma_zoomed_out = chroma_from_pianoroll(accomp_piece, resolution=resolution)
-        tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
-        with open(sentences_file_path, 'a', encoding='utf-8') as the_file:
-            the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
-    except:
-        print('ERROR with ', datalist[i])
-        with open(error_log_file_path, 'a') as the_file:
-            the_file.write(datalist[i] + '\n')
+def pianoroll_to_midi_bytes(pianoroll_structure):
+    # initialize bytes handle
+    b_handle = io.BytesIO()
+    # write midi data to bytes handle
+    pianoroll_structure.write(b_handle)
+    # start read pointer from the beginning
+    b_handle.seek(0)
+    # create a buffered reader to read the handle
+    buffered_reader = io.BufferedReader(b_handle)
+    # create a midi object from the "file", i.e., buffered reader
+    midi_bytes = symusic.Score.from_midi(b_handle.getvalue())
+    # close the bytes handle
+    b_handle.close()
+    return midi_bytes
+# end 
