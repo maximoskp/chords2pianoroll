@@ -14,6 +14,8 @@ import csv
 
 from tqdm import tqdm
 
+load_saved = True
+
 roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/midi_wordlevel_tokenizer')
 
 bart_config = BartConfig(
@@ -39,6 +41,9 @@ bart_config = BartConfig(
 
 dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = MelCAT_base(bart_config, gpu=0)
+if load_saved:
+    checkpoint = torch.load('saved_models/bart_base/bart_base.pt', weights_only=True)
+    model.load_state_dict(checkpoint)
 
 # Freeze the parameters of pretrained models
 for param in model.text_encoder.parameters():
@@ -59,7 +64,7 @@ dataset = LiveMelCATDataset(midifolder, segment_size=40)
 
 custom_collate_fn = MelCATCollator(max_seq_lens=dataset.max_seq_lengths, padding_values=dataset.padding_values)
 
-dataloader = DataLoader(dataset, batch_size=4, collate_fn=custom_collate_fn)
+dataloader = DataLoader(dataset, batch_size=4, collate_fn=custom_collate_fn, drop_last=True)
 
 save_name = 'bart_base'
 
