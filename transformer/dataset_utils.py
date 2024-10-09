@@ -50,7 +50,12 @@ class LiveMelCATDataset(Dataset):
         # print('idx:', idx)
         # print(self.midis_list[idx])
         # load a midi file in pianoroll
-        main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx], resolution=self.resolution)
+        try:
+            main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx], resolution=self.resolution)
+        except:
+            print('could not load midi file: ', self.midis_list[idx])
+            # load previous
+            main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx-1], resolution=self.resolution)
         main_piece_size = main_piece.downbeat.shape[0]
         # check if piece is long enough
         if main_piece_size <= self.segment_size*main_piece.resolution:
