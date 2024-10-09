@@ -70,6 +70,7 @@ class MelCAT_base(nn.Module):
         print(encoder_outputs.last_hidden_state.shape)
         decoder_outputs = self.bart_model.model.decoder(
             # inputs_embeds=decoder_input_embeds,
+            input_ids=torch.full( (text_embeds.last_hidden_state.shape[0], 1), self.bart_model.config.eos_token_id ),
             encoder_hidden_states=encoder_outputs.last_hidden_state,
             # encoder_attention_mask=attention_mask,
             # attention_mask=decoder_attention_mask,
