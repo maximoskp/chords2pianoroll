@@ -47,11 +47,18 @@ class LiveMelCATDataset(Dataset):
         return len(self.midis_list)
     # end len
     def __getitem__(self, idx):
-        print('idx:', idx)
-        print(self.midis_list[idx])
+        # print('idx:', idx)
+        # print(self.midis_list[idx])
         # load a midi file in pianoroll
         main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx], resolution=self.resolution)
         main_piece_size = main_piece.downbeat.shape[0]
+        # check if piece is long enough
+        if main_piece_size <= self.segment_size*main_piece.resolution:
+            print('piece not long enough: ', self.midis_list[idx])
+            # select another index
+            idx_new = np.random.randint( len(self.midis_list) )
+            main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx_new], resolution=self.resolution)
+            main_piece_size = main_piece.downbeat.shape[0]
         # make deepcopy
         new_piece = deepcopy(main_piece)
         # trim piece

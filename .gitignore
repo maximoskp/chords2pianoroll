@@ -1,6 +1,7 @@
 data/
 test_data/
 old/
+saved_models/
 
 chroma_accompaniment_sentences.txt
 
