@@ -53,7 +53,7 @@ class MelCAT_base(nn.Module):
         self.text_lstm = nn.LSTM(input_size=768, 
                             hidden_size=256, 
                             batch_first=True).to(self.dev)
-        self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/checkpoint-5120').to(self.dev)
+        self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/checkpoint-46080').to(self.dev)
         self.chroma_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/chroma_mlm_tiny/checkpoint-14336').to(self.dev)
         self.bart_model = BartForConditionalGeneration(bart_config).to(self.dev)
         # print('initialized')

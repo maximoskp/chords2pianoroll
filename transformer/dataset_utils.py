@@ -20,11 +20,12 @@ from copy import deepcopy
 import pypianoroll
 
 class LiveMelCATDataset(Dataset):
-    def __init__(self, midis_folder, segment_size=64, resolution=24):
+    def __init__(self, midis_folder, segment_size=64, resolution=24, only_beginning=False):
         self.midis_folder = midis_folder
         self.midis_list = os.listdir(midis_folder)
         self.segment_size = segment_size
         self.resolution = resolution
+        self.only_beginning = only_beginning
         self.binary_chroma_tokenizer = SimpleSerialChromaTokenizer()
         self.remi_tokenizer = REMI(params=Path('/media/datadisk/data/pretrained_models/midis_REMI_BPE_tokenizer.json'))
         self.roberta_tokenizer_chroma = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/chroma_mlm_tiny/chroma_wordlevel_tokenizer')
@@ -67,7 +68,10 @@ class LiveMelCATDataset(Dataset):
         # make deepcopy
         new_piece = deepcopy(main_piece)
         # trim piece
-        start_idx = np.random.randint( main_piece_size - self.segment_size*main_piece.resolution )
+        if not self.only_beginning:
+            start_idx = np.random.randint( main_piece_size - self.segment_size*main_piece.resolution )
+        else:
+            start_idx = 0
         end_idx = start_idx + self.segment_size*main_piece.resolution
         new_piece.trim(start_idx, end_idx)
         # split melody - accompaniment

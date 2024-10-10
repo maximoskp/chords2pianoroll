@@ -14,7 +14,7 @@ import csv
 
 from tqdm import tqdm
 
-load_saved = True
+load_saved = False
 
 roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/midi_wordlevel_tokenizer')
 
@@ -26,12 +26,12 @@ bart_config = BartConfig(
     decoder_start_token_id=roberta_tokenizer_midi.bos_token_id,
     forced_eos_token_id=roberta_tokenizer_midi.eos_token_id,
     max_position_embeddings=4096,
-    encoder_layers=4,
-    encoder_attention_heads=4,
-    encoder_ffn_dim=256,
-    decoder_layers=4,
-    decoder_attention_heads=4,
-    decoder_ffn_dim=256,
+    encoder_layers=6,
+    encoder_attention_heads=8,
+    encoder_ffn_dim=512,
+    decoder_layers=6,
+    decoder_attention_heads=8,
+    decoder_ffn_dim=512,
     d_model=256,
     encoder_layerdrop=0.2,
     decoder_layerdrop=0.2,
@@ -40,6 +40,7 @@ bart_config = BartConfig(
 
 
 dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# dev = torch.device("cpu")
 model = MelCAT_base(bart_config, gpu=0)
 if load_saved:
     checkpoint = torch.load('saved_models/bart_base/bart_base.pt', weights_only=True)
@@ -60,11 +61,11 @@ optimizer = torch.optim.AdamW( params, lr=0.001)
 
 midifolder = '/media/datadisk/datasets/GiantMIDI-PIano/midis_v1.2/midis'
 # midifolder = '/media/datadisk/data/Giant_PIano/'
-dataset = LiveMelCATDataset(midifolder, segment_size=40)
+dataset = LiveMelCATDataset(midifolder, segment_size=40, only_beginning=True)
 
 custom_collate_fn = MelCATCollator(max_seq_lens=dataset.max_seq_lengths, padding_values=dataset.padding_values)
 
-dataloader = DataLoader(dataset, batch_size=4, collate_fn=custom_collate_fn, drop_last=True)
+dataloader = DataLoader(dataset, batch_size=2, collate_fn=custom_collate_fn, drop_last=True)
 
 save_name = 'bart_base'
 
