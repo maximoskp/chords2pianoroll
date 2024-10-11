@@ -3,7 +3,7 @@ from transformers import RobertaTokenizerFast
 import torch
 from torch.utils.data import DataLoader
 
-from models import MelCAT_base, MelCAT_base_tokens
+from models import MelCAT_base
 from dataset_utils import LiveMelCATDataset, MelCATCollator
 
 from torch.nn import CrossEntropyLoss
@@ -43,27 +43,26 @@ bart_config = BartConfig(
 
 dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # dev = torch.device("cpu")
-# model = MelCAT_base(bart_config, gpu=0)
-model = MelCAT_base_tokens(bart_config, gpu=0)
+model = MelCAT_base(bart_config, gpu=0)
 
 if load_saved:
     checkpoint = torch.load('saved_models/bart_base/bart_base.pt', weights_only=True)
     model.load_state_dict(checkpoint)
 
-# # Freeze the parameters of pretrained models
-# for param in model.text_encoder.parameters():
-#     param.requires_grad = False
+# Freeze the parameters of pretrained models
+for param in model.text_encoder.parameters():
+    param.requires_grad = False
 
-# for param in model.chroma_encoder.parameters():
-#     param.requires_grad = False
+for param in model.chroma_encoder.parameters():
+    param.requires_grad = False
 
-# for param in model.midi_encoder.parameters():
-#     param.requires_grad = False
+for param in model.midi_encoder.parameters():
+    param.requires_grad = False
 
-# params = list(model.bart_model.parameters()) + list( model.text_lstm.parameters())
-# optimizer = torch.optim.AdamW( params, lr=0.001)
+params = list(model.bart_model.parameters()) + list( model.text_lstm.parameters())
+optimizer = torch.optim.AdamW( params, lr=0.00001)
 
-optimizer = torch.optim.AdamW( model.parameters(), lr=0.001)
+# optimizer = torch.optim.AdamW( model.parameters(), lr=0.001)
 
 midifolder = '/media/datadisk/datasets/GiantMIDI-PIano/midis_v1.2/midis'
 # midifolder = '/media/datadisk/data/Giant_PIano/'
@@ -131,7 +130,11 @@ for epoch in range(1000):
             # print('prediction.shape:', prediction.shape)
             # print('target_ids.shape:', target_ids.shape)
             # print('shifted_accomp[attention_mask].shape:', shifted_accomp['attention_mask'].shape)
-            running_accuracy += (prediction[prediction != roberta_tokenizer_midi.pad_token_id] == target_ids[prediction != roberta_tokenizer_midi.pad_token_id]).sum().item()/(prediction != roberta_tokenizer_midi.pad_token_id).sum().item()
+            if (target_ids != roberta_tokenizer_midi.pad_token_id).sum().item() > 0:
+                # running_accuracy += (prediction[prediction != roberta_tokenizer_midi.pad_token_id] == target_ids[prediction != roberta_tokenizer_midi.pad_token_id]).sum().item()/(prediction != roberta_tokenizer_midi.pad_token_id).sum().item()
+                running_accuracy += (prediction[target_ids != roberta_tokenizer_midi.pad_token_id] == target_ids[target_ids != roberta_tokenizer_midi.pad_token_id]).sum().item()/(target_ids != roberta_tokenizer_midi.pad_token_id).sum().item()
+            else:
+                running_accuracy += 0
             train_accuracy = running_accuracy/batch_num
             torch.set_printoptions(threshold=10_000)
             tepoch.set_postfix(loss=train_loss, accuracy=train_accuracy) # tepoch.set_postfix(loss=loss.item(), accuracy=100. * accuracy)

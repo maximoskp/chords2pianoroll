@@ -3,7 +3,7 @@ from transformers import RobertaTokenizerFast
 import torch
 from torch.utils.data import DataLoader
 
-from models import MelCAT_base
+from models import MelCAT_base_tokens
 from dataset_utils import LiveMelCATDataset, MelCATCollator
 
 from torch.nn import CrossEntropyLoss
@@ -29,10 +29,10 @@ bart_config = BartConfig(
     forced_eos_token_id=roberta_tokenizer_midi.eos_token_id,
     max_position_embeddings=MAX_LENGTH,
     encoder_layers=8,
-    encoder_attention_heads=16,
+    encoder_attention_heads=8,
     encoder_ffn_dim=4096,
     decoder_layers=8,
-    decoder_attention_heads=16,
+    decoder_attention_heads=8,
     decoder_ffn_dim=4096,
     d_model=256,
     encoder_layerdrop=0.3,
@@ -43,25 +43,25 @@ bart_config = BartConfig(
 
 dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # dev = torch.device("cpu")
-model = MelCAT_base(bart_config, gpu=0)
+model = MelCAT_base_tokens(bart_config, gpu=0)
 
 if load_saved:
     checkpoint = torch.load('saved_models/bart_base/bart_base.pt', weights_only=True)
     model.load_state_dict(checkpoint)
 
-# Freeze the parameters of pretrained models
-for param in model.text_encoder.parameters():
-    param.requires_grad = False
+# # Freeze the parameters of pretrained models
+# for param in model.text_encoder.parameters():
+#     param.requires_grad = False
 
-for param in model.chroma_encoder.parameters():
-    param.requires_grad = False
+# for param in model.chroma_encoder.parameters():
+#     param.requires_grad = False
 
-for param in model.midi_encoder.parameters():
-    param.requires_grad = False
+# for param in model.midi_encoder.parameters():
+#     param.requires_grad = False
 
-params = list(model.bart_model.parameters()) + list( model.text_lstm.parameters())
-optimizer = torch.optim.AdamW( params, lr=0.0001)
-# optimizer = torch.optim.AdamW( model.parameters(), lr=0.0001)
+# params = list(model.bart_model.parameters()) + list( model.text_lstm.parameters())
+# optimizer = torch.optim.AdamW( params, lr=0.00001)
+optimizer = torch.optim.AdamW( model.parameters(), lr=0.00001)
 
 loss_fct = CrossEntropyLoss(ignore_index=roberta_tokenizer_midi.pad_token_id)
 
