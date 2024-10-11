@@ -110,35 +110,18 @@ class MelCAT_base_tokens(nn.Module):
         # print('initialized')
     # end init
 
-    def forward(self, text, melody, chroma, accomp): # TODO: add optional accomp input (for continuing composition) and labels (for loss calculation)
-        # print('in forward')
-        # text_embeds = self.text_encoder( input_ids=text['input_ids'].to(self.dev), attention_mask=text['attention_mask'].to(self.dev), output_hidden_states=True )
-        # text_lstm_output, (_,_) = self.text_lstm(text_embeds.last_hidden_state)
-        # melody_embeds = self.midi_encoder( input_ids=melody['input_ids'].to(self.dev), attention_mask=melody['attention_mask'].to(self.dev), output_hidden_states=True )
-        # chroma_embeds = self.chroma_encoder( input_ids=chroma['input_ids'].to(self.dev), attention_mask=chroma['attention_mask'].to(self.dev), output_hidden_states=True )
-        # print(text_embeds.last_hidden_state.shape)
-        # print(text_lstm_output.shape)
-        # print(melody_embeds.last_hidden_state.shape)
-        # print(chroma_embeds.last_hidden_state.shape)
-        # print(accomp['input_ids'].shape)
+    def forward(self, melody, chroma, accomp, labels): # TODO: add optional accomp input (for continuing composition) and labels (for loss calculation)
         bart_encoder_input = torch.cat( (melody['input_ids'], chroma['input_ids']), 1 ).to(self.dev)
-        # make masks
         bart_encoder_mask = torch.cat( (melody['attention_mask'], chroma['attention_mask'] ), 1 ).to(self.dev)
-        # print(bart_encoder_input.shape)
-        encoder_outputs = self.bart_model.model.encoder( bart_encoder_input[:,:self.bart_model.config.max_position_embeddings], attention_mask=bart_encoder_mask )
-        # print(encoder_outputs.last_hidden_state.shape)
-        decoder_outputs = self.bart_model.model.decoder(
-            # inputs_embeds=decoder_input_embeds,
-            # input_ids=torch.full( (text_embeds.last_hidden_state.shape[0], 1), self.bart_model.config.eos_token_id ),
-            input_ids=accomp['input_ids'].to(self.dev),
-            attention_mask=accomp['attention_mask'].to(self.dev),
-            encoder_hidden_states=encoder_outputs.last_hidden_state,
-            # encoder_attention_mask=attention_mask,
-            # attention_mask=decoder_attention_mask,
+
+        vocab_output = self.bart_model(
+            input_ids=bart_encoder_input[:,:self.bart_model.config.max_position_embeddings],
+            attention_mask=bart_encoder_mask[:,:self.bart_model.config.max_position_embeddings],
+            decoder_input_ids=accomp['input_ids'].to(self.dev),
+            decoder_attention_mask=accomp['attention_mask'].to(self.dev),
+            labels=labels,
             return_dict=True
-            # **kwargs
         )
-        vocab_output = self.bart_model.lm_head(decoder_outputs.last_hidden_state)
         return vocab_output
     # end forward
 # end class
