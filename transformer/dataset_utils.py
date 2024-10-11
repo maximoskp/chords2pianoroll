@@ -20,11 +20,12 @@ from copy import deepcopy
 import pypianoroll
 
 class LiveMelCATDataset(Dataset):
-    def __init__(self, midis_folder, segment_size=64, resolution=24, only_beginning=False):
+    def __init__(self, midis_folder, segment_size=64, resolution=24, max_seq_len=1024, only_beginning=False):
         self.midis_folder = midis_folder
         self.midis_list = os.listdir(midis_folder)
         self.segment_size = segment_size
         self.resolution = resolution
+        self.max_seq_len = max_seq_len-2
         self.only_beginning = only_beginning
         self.binary_chroma_tokenizer = SimpleSerialChromaTokenizer()
         self.remi_tokenizer = REMI(params=Path('/media/datadisk/data/pretrained_models/midis_REMI_BPE_tokenizer.json'))
@@ -37,11 +38,17 @@ class LiveMelCATDataset(Dataset):
             'text': self.roberta_tokenizer_text.pad_token_id,
             'accomp': self.roberta_tokenizer_midi.pad_token_id
         }
+        # self.max_seq_lengths = {
+        #     'melody': 1024,
+        #     'chroma': 1024,
+        #     'text': 1024,
+        #     'accomp': 4096
+        # }
         self.max_seq_lengths = {
             'melody': 1024,
             'chroma': 1024,
             'text': 1024,
-            'accomp': 4096
+            'accomp': self.max_seq_len-2
         }
     # end init
     def __len__(self):
@@ -73,7 +80,10 @@ class LiveMelCATDataset(Dataset):
         else:
             start_idx = 0
         end_idx = start_idx + self.segment_size*main_piece.resolution
-        new_piece.trim(start_idx, end_idx)
+        try:
+            new_piece.trim(start_idx, end_idx)
+        except:
+            print('piece not trimmed')
         # split melody - accompaniment
         melody_piece, accomp_piece = mpu.split_melody_accompaniment_from_pianoroll( new_piece )
         # keep chroma from accompaniment
@@ -98,10 +108,10 @@ class LiveMelCATDataset(Dataset):
         text_tokens = self.roberta_tokenizer_text(text_description)
         # return torch.LongTensor(melody_tokens['input_ids']),
         return {
-            'melody': torch.LongTensor(melody_tokens['input_ids']),
-            'chroma': torch.LongTensor(chroma_tokens['input_ids']),
-            'text': torch.LongTensor(text_tokens['input_ids']),
-            'accomp': torch.LongTensor(accomp_tokens['input_ids'])
+            'melody': torch.LongTensor(melody_tokens['input_ids'])[:self.max_seq_len],
+            'chroma': torch.LongTensor(chroma_tokens['input_ids'])[:self.max_seq_len],
+            'text': torch.LongTensor(text_tokens['input_ids'])[:self.max_seq_len],
+            'accomp': torch.LongTensor(accomp_tokens['input_ids'])[:self.max_seq_len]
         }
     # end getitem
 # end class
