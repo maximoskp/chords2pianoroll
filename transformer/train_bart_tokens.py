@@ -14,7 +14,7 @@ import csv
 
 from tqdm import tqdm
 
-load_saved = False
+load_saved = True
 
 MAX_LENGTH = 1024
 

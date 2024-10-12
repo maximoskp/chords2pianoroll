@@ -74,13 +74,13 @@ class MelCAT_base(nn.Module):
         # make masks
         bart_encoder_mask = torch.cat( (torch.full( (text_lstm_output[:,-1:,:].shape[0], 1), self.bart_model.config.pad_token_id ), melody['attention_mask'], chroma['attention_mask'] ), 1 ).to(self.dev)
         # print(bart_encoder_input.shape)
-        encoder_outputs = self.bart_model.model.encoder( inputs_embeds=bart_encoder_input[:,:self.bart_model.config.max_position_embeddings,:], attention_mask=bart_encoder_mask )
+        encoder_outputs = self.bart_model.model.encoder( inputs_embeds=bart_encoder_input[:,:self.bart_model.config.max_position_embeddings,:], attention_mask=bart_encoder_mask[:,:self.bart_model.config.max_position_embeddings] )
         # print(encoder_outputs.last_hidden_state.shape)
         decoder_outputs = self.bart_model.model.decoder(
             # inputs_embeds=decoder_input_embeds,
             # input_ids=torch.full( (text_embeds.last_hidden_state.shape[0], 1), self.bart_model.config.eos_token_id ),
-            input_ids=accomp['input_ids'].to(self.dev),
-            attention_mask=accomp['attention_mask'].to(self.dev),
+            input_ids=accomp['input_ids'][:,:self.bart_model.config.max_position_embeddings].to(self.dev),
+            attention_mask=accomp['attention_mask'][:,:self.bart_model.config.max_position_embeddings].to(self.dev),
             encoder_hidden_states=encoder_outputs.last_hidden_state,
             # encoder_attention_mask=attention_mask,
             # attention_mask=decoder_attention_mask,
