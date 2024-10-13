@@ -46,7 +46,7 @@ dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = MelCAT_base_tokens(bart_config, gpu=0)
 
 if load_saved:
-    checkpoint = torch.load('saved_models/bart_base/bart_base.pt', weights_only=True)
+    checkpoint = torch.load('saved_models/bart_tokens/bart_tokens.pt', weights_only=True)
     model.load_state_dict(checkpoint)
 
 # # Freeze the parameters of pretrained models
