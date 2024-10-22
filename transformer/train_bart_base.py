@@ -14,7 +14,7 @@ import csv
 
 from tqdm import tqdm
 
-load_saved = True
+load_saved = False
 
 MAX_LENGTH = 1024
 
@@ -25,6 +25,7 @@ bart_config = BartConfig(
     pad_token_id=roberta_tokenizer_midi.pad_token_id,
     bos_token_id=roberta_tokenizer_midi.bos_token_id,
     eos_token_id=roberta_tokenizer_midi.eos_token_id,
+    unk_token_id=roberta_tokenizer_midi.unk_token_id,
     decoder_start_token_id=roberta_tokenizer_midi.bos_token_id,
     forced_eos_token_id=roberta_tokenizer_midi.eos_token_id,
     max_position_embeddings=MAX_LENGTH,

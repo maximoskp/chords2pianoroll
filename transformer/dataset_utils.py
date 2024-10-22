@@ -55,8 +55,6 @@ class LiveMelCATDataset(Dataset):
         return len(self.midis_list)
     # end len
     def __getitem__(self, idx):
-        # print('idx:', idx)
-        # print(self.midis_list[idx])
         # load a midi file in pianoroll
         try:
             main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx], resolution=self.resolution)
@@ -97,10 +95,10 @@ class LiveMelCATDataset(Dataset):
         accomp_file = mpu.pianoroll_to_midi_bytes(accomp_piece)
         # tokenize melody and accompaniment midi to text
         remi_tokenized_melody = self.remi_tokenizer(melody_file)
-        melody_string = ' '.join(remi_tokenized_melody[0].tokens)
+        melody_string = ' '.join(remi_tokenized_melody[0].tokens).replace('.', 'x')
         melody_tokens = self.roberta_tokenizer_midi(melody_string)
         remi_tokenized_accomp = self.remi_tokenizer(accomp_file)
-        accomp_string = ' '.join(remi_tokenized_accomp[0].tokens)
+        accomp_string = ' '.join(remi_tokenized_accomp[0].tokens).replace('.', 'x')
         accomp_tokens = self.roberta_tokenizer_midi(accomp_string)
         # get text from title
         text_description = self.midis_list[idx]
