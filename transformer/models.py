@@ -3,6 +3,7 @@ from miditok import REMI, TokenizerConfig
 from pathlib import Path
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
 
 '''
 # text
@@ -53,7 +54,9 @@ class MelCAT_base(nn.Module):
         self.text_lstm = nn.LSTM(input_size=768, 
                             hidden_size=256, 
                             batch_first=True).to(self.dev)
-        self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/checkpoint-46080').to(self.dev)
+        # self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/checkpoint-46080').to(self.dev)
+        self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/checkpoint-24064').to(self.dev)
+        self.midi_rescaler = nn.Linear(512, 256).to(self.dev)
         self.chroma_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/chroma_mlm_tiny/checkpoint-14336').to(self.dev)
         self.bart_model = BartForConditionalGeneration(bart_config).to(self.dev)
         # print('initialized')
@@ -63,14 +66,18 @@ class MelCAT_base(nn.Module):
         # print('in forward')
         text_embeds = self.text_encoder( input_ids=text['input_ids'].to(self.dev), attention_mask=text['attention_mask'].to(self.dev), output_hidden_states=True )
         text_lstm_output, (_,_) = self.text_lstm(text_embeds.last_hidden_state)
+        # print('ids:', melody['input_ids'])
+        # print('att:', melody['attention_mask'])
         melody_embeds = self.midi_encoder( input_ids=melody['input_ids'].to(self.dev), attention_mask=melody['attention_mask'].to(self.dev), output_hidden_states=True )
+        melody_embeds = self.midi_rescaler(melody_embeds.last_hidden_state)
         chroma_embeds = self.chroma_encoder( input_ids=chroma['input_ids'].to(self.dev), attention_mask=chroma['attention_mask'].to(self.dev), output_hidden_states=True )
         # print(text_embeds.last_hidden_state.shape)
         # print(text_lstm_output.shape)
         # print(melody_embeds.last_hidden_state.shape)
         # print(chroma_embeds.last_hidden_state.shape)
         # print(accomp['input_ids'].shape)
-        bart_encoder_input = torch.cat( (text_lstm_output[:,-1:,:], melody_embeds.last_hidden_state, chroma_embeds.last_hidden_state), 1 )
+        bart_encoder_input = torch.cat( (text_lstm_output[:,-1:,:], melody_embeds, chroma_embeds.last_hidden_state), 1 )
+        # bart_encoder_input = torch.cat( (text_lstm_output[:,-1:,:], melody_embeds.last_hidden_state, chroma_embeds.last_hidden_state), 1 )
         # make masks
         bart_encoder_mask = torch.cat( (torch.full( (text_lstm_output[:,-1:,:].shape[0], 1), self.bart_model.config.pad_token_id ), melody['attention_mask'], chroma['attention_mask'] ), 1 ).to(self.dev)
         # print(bart_encoder_input.shape)

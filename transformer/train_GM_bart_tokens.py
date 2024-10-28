@@ -14,7 +14,7 @@ import csv
 
 from tqdm import tqdm
 
-load_saved = True
+load_saved = False
 
 MAX_LENGTH = 1024
 
@@ -29,10 +29,10 @@ bart_config = BartConfig(
     forced_eos_token_id=roberta_tokenizer_midi.eos_token_id,
     max_position_embeddings=MAX_LENGTH,
     encoder_layers=8,
-    encoder_attention_heads=8,
+    encoder_attention_heads=16,
     encoder_ffn_dim=4096,
     decoder_layers=8,
-    decoder_attention_heads=8,
+    decoder_attention_heads=16,
     decoder_ffn_dim=4096,
     d_model=256,
     encoder_layerdrop=0.3,
@@ -61,7 +61,7 @@ if load_saved:
 
 # params = list(model.bart_model.parameters()) + list( model.text_lstm.parameters())
 # optimizer = torch.optim.AdamW( params, lr=0.00001)
-optimizer = torch.optim.AdamW( model.parameters(), lr=0.00001)
+optimizer = torch.optim.AdamW( model.parameters(), lr=0.0001)
 
 loss_fct = CrossEntropyLoss(ignore_index=roberta_tokenizer_midi.pad_token_id)
 
@@ -109,6 +109,8 @@ for epoch in range(1000):
             shifted_accomp['attention_mask'][:, 0] = 1  # Add attention at start
 
             optimizer.zero_grad()
+
+            print(b['melody']['input_ids'].shape, b['chroma']['input_ids'].shape, shifted_accomp['input_ids'].shape, b['accomp']['input_ids'].shape)
             
             output = model( b['melody'], b['chroma'], shifted_accomp, b['accomp']['input_ids'])
             logits = output.logits

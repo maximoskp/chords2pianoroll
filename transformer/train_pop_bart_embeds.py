@@ -18,7 +18,7 @@ load_saved = False
 
 MAX_LENGTH = 1024
 
-roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/midi_wordlevel_tokenizer')
+roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer')
 
 bart_config = BartConfig(
     vocab_size=roberta_tokenizer_midi.vocab_size,
@@ -26,6 +26,7 @@ bart_config = BartConfig(
     bos_token_id=roberta_tokenizer_midi.bos_token_id,
     eos_token_id=roberta_tokenizer_midi.eos_token_id,
     unk_token_id=roberta_tokenizer_midi.unk_token_id,
+    unk_token='<unk>',
     decoder_start_token_id=roberta_tokenizer_midi.bos_token_id,
     forced_eos_token_id=roberta_tokenizer_midi.eos_token_id,
     max_position_embeddings=MAX_LENGTH,
@@ -43,11 +44,12 @@ bart_config = BartConfig(
 
 
 dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# dev = torch.device("cpu")
 model = MelCAT_base(bart_config, gpu=0)
+# dev = torch.device("cpu")
+# model = MelCAT_base(bart_config, gpu=None)
 
 if load_saved:
-    checkpoint = torch.load('saved_models/bart_base/bart_base.pt', weights_only=True)
+    checkpoint = torch.load('saved_models/bart_pop_embeds/bart_pop_embeds.pt', weights_only=True)
     model.load_state_dict(checkpoint)
 
 # Freeze the parameters of pretrained models
@@ -60,12 +62,15 @@ for param in model.chroma_encoder.parameters():
 for param in model.midi_encoder.parameters():
     param.requires_grad = False
 
-params = list(model.bart_model.parameters()) + list( model.text_lstm.parameters())
-optimizer = torch.optim.AdamW( params, lr=0.00001)
+params = list( model.bart_model.parameters() ) + \
+    list( model.text_lstm.parameters() ) + list( model.midi_rescaler.parameters() )
+optimizer = torch.optim.AdamW( params, lr=0.0001)
+loss_fct = CrossEntropyLoss(ignore_index=roberta_tokenizer_midi.pad_token_id)
 
 # optimizer = torch.optim.AdamW( model.parameters(), lr=0.001)
 
-midifolder = '/media/datadisk/datasets/GiantMIDI-PIano/midis_v1.2/midis'
+midifolder = '/media/datadisk/datasets/POP909/aug_folder'
+# midifolder = '/media/datadisk/datasets/GiantMIDI-PIano/midis_v1.2/midis'
 # midifolder = '/media/datadisk/data/Giant_PIano/'
 dataset = LiveMelCATDataset(midifolder, segment_size=40, resolution=4, max_seq_len=1024, only_beginning=True)
 
@@ -73,7 +78,7 @@ custom_collate_fn = MelCATCollator(max_seq_lens=dataset.max_seq_lengths, padding
 
 dataloader = DataLoader(dataset, batch_size=4, collate_fn=custom_collate_fn, drop_last=True)
 
-save_name = 'bart_base'
+save_name = 'bart_pop_embeds'
 
 # keep best validation loss for saving
 best_val_loss = np.inf
@@ -84,10 +89,11 @@ os.makedirs(save_dir, exist_ok=True)
 # save results
 os.makedirs('results', exist_ok=True)
 results_path = 'results/' + save_name + '.csv'
-result_fields = ['iteration', 'train_loss', 'tran_acc']
-with open( results_path, 'w' ) as f:
-    writer = csv.writer(f)
-    writer.writerow( result_fields )
+if not load_saved:
+    result_fields = ['iteration', 'train_loss', 'tran_acc']
+    with open( results_path, 'w' ) as f:
+        writer = csv.writer(f)
+        writer.writerow( result_fields )
 
 for epoch in range(1000):
     train_loss = 0
@@ -109,14 +115,17 @@ for epoch in range(1000):
             shifted_accomp['attention_mask'][:, 0] = 1  # Add attention at start
 
             optimizer.zero_grad()
-            
+
+            # print(b['text']['input_ids'].shape, b['melody']['input_ids'].shape, \
+            #       b['chroma']['input_ids'].shape, shifted_accomp['input_ids'].shape)
+            # print(b['text']['attention_mask'].shape, b['melody']['attention_mask'].shape, \
+            #       b['chroma']['attention_mask'].shape, shifted_accomp['attention_mask'].shape)
             logits = model(b['text'], b['melody'], b['chroma'], shifted_accomp)
             target_ids = b['accomp']['input_ids'].to(dev).contiguous()  # Shifted target sequence
             # Flatten the logits and target for the loss calculation
             logits_flat = logits.view(-1, logits.size(-1))
             target_flat = target_ids.view(-1)
             # Compute the cross-entropy loss (ignoring padding tokens)
-            loss_fct = CrossEntropyLoss(ignore_index=roberta_tokenizer_midi.pad_token_id)
             loss = loss_fct(logits_flat, target_flat)
 
             loss.backward()

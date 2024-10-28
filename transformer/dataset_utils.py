@@ -19,18 +19,28 @@ from copy import deepcopy
 
 import pypianoroll
 
+# remi_path = Path('/media/datadisk/data/pretrained_models/midis_REMI_BPE_tokenizer.json')
+# chroma_tokenizer_path = '/media/datadisk/data/pretrained_models/chroma_mlm_tiny/chroma_wordlevel_tokenizer'
+# midi_tokenizer_path = '/media/datadisk/data/pretrained_models/midi_mlm_tiny/midi_wordlevel_tokenizer'
+
+remi_path = Path('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_REMI_BPE_tokenizer.json')
+chroma_tokenizer_path = '/media/datadisk/data/pretrained_models/chroma_mlm_tiny/chroma_wordlevel_tokenizer'
+midi_tokenizer_path = '/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer'
+
 class LiveMelCATDataset(Dataset):
-    def __init__(self, midis_folder, segment_size=64, resolution=24, max_seq_len=1024, only_beginning=False):
+    def __init__(self, midis_folder, segment_size=64, resolution=24, max_seq_len=1024, only_beginning=False,\
+                 ignore_short_pieces=True):
         self.midis_folder = midis_folder
         self.midis_list = os.listdir(midis_folder)
         self.segment_size = segment_size
         self.resolution = resolution
         self.max_seq_len = max_seq_len-2
         self.only_beginning = only_beginning
+        self.ignore_short_pieces = ignore_short_pieces
         self.binary_chroma_tokenizer = SimpleSerialChromaTokenizer()
-        self.remi_tokenizer = REMI(params=Path('/media/datadisk/data/pretrained_models/midis_REMI_BPE_tokenizer.json'))
-        self.roberta_tokenizer_chroma = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/chroma_mlm_tiny/chroma_wordlevel_tokenizer')
-        self.roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/midi_wordlevel_tokenizer')
+        self.remi_tokenizer = REMI(params=remi_path)
+        self.roberta_tokenizer_chroma = RobertaTokenizerFast.from_pretrained(chroma_tokenizer_path)
+        self.roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained(midi_tokenizer_path)
         self.roberta_tokenizer_text = RobertaTokenizer.from_pretrained('roberta-base')
         self.padding_values = {
             'melody': self.roberta_tokenizer_midi.pad_token_id,
@@ -59,17 +69,24 @@ class LiveMelCATDataset(Dataset):
         try:
             main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx], resolution=self.resolution)
         except:
-            print('could not load midi file: ', self.midis_list[idx])
+            print('could not load midi file:', self.midis_list[idx])
             # load previous
             main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx-1], resolution=self.resolution)
-        main_piece_size = main_piece.downbeat.shape[0]
-        # check if piece is long enough
-        if main_piece_size <= self.segment_size*main_piece.resolution:
-            print('piece not long enough: ', self.midis_list[idx])
-            # select another index
-            idx_new = np.random.randint( len(self.midis_list) )
-            main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx_new], resolution=self.resolution)
+        if main_piece.downbeat is not None:
             main_piece_size = main_piece.downbeat.shape[0]
+        else:
+            # load previous
+            print('downbeat was None, loading previous:', self.midis_list[idx])
+            main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx-1], resolution=self.resolution)
+            main_piece_size = main_piece.downbeat.shape[0]
+        # check if piece is long enough
+        if self.ignore_short_pieces:
+            if main_piece_size <= self.segment_size*main_piece.resolution:
+                print('piece not long enough: ', self.midis_list[idx])
+                # select another index
+                idx_new = np.random.randint( len(self.midis_list) )
+                main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx_new], resolution=self.resolution)
+                main_piece_size = main_piece.downbeat.shape[0]
         # make deepcopy
         new_piece = deepcopy(main_piece)
         # trim piece
