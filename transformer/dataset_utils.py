@@ -3,6 +3,8 @@ from torch.utils.data import Dataset
 
 from torch.nn.utils.rnn import pad_sequence
 
+import numpy as np
+
 # from ..data_preparation.mel_chrom_accomp_text.chroma_subsystem.BinaryTokenizer import SimpleSerialChromaTokenizer
 from BinaryTokenizer import SimpleSerialChromaTokenizer
 from miditok import REMI, TokenizerConfig
@@ -26,6 +28,9 @@ import pypianoroll
 remi_path = Path('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_REMI_BPE_tokenizer.json')
 chroma_tokenizer_path = '/media/datadisk/data/pretrained_models/chroma_mlm_tiny/chroma_wordlevel_tokenizer'
 midi_tokenizer_path = '/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer'
+
+text_sentences = ['a pop accompaniment', 'accompaniment in the style of pop', 'a pop piece', \
+                  'a piece in the pop style', 'a piano pop accompaniment']
 
 class LiveMelCATDataset(Dataset):
     def __init__(self, midis_folder, segment_size=64, resolution=24, max_seq_len=1024, only_beginning=False,\
@@ -66,6 +71,7 @@ class LiveMelCATDataset(Dataset):
     # end len
     def __getitem__(self, idx):
         # load a midi file in pianoroll
+        # print(idx, self.midis_list[idx])
         try:
             main_piece = pypianoroll.read(self.midis_folder + os.sep + self.midis_list[idx], resolution=self.resolution)
         except:
@@ -112,13 +118,16 @@ class LiveMelCATDataset(Dataset):
         accomp_file = mpu.pianoroll_to_midi_bytes(accomp_piece)
         # tokenize melody and accompaniment midi to text
         remi_tokenized_melody = self.remi_tokenizer(melody_file)
+        # print('remi_tokenized_melody:', remi_tokenized_melody)
         melody_string = ' '.join(remi_tokenized_melody[0].tokens).replace('.', 'x')
         melody_tokens = self.roberta_tokenizer_midi(melody_string)
         remi_tokenized_accomp = self.remi_tokenizer(accomp_file)
+        # print('remi_tokenized_accomp:', remi_tokenized_accomp)
         accomp_string = ' '.join(remi_tokenized_accomp[0].tokens).replace('.', 'x')
         accomp_tokens = self.roberta_tokenizer_midi(accomp_string)
         # get text from title
-        text_description = self.midis_list[idx]
+        # text_description = self.midis_list[idx]
+        text_description = text_sentences[np.random.randint(len(text_sentences))]
         # tokenize text
         text_tokens = self.roberta_tokenizer_text(text_description)
         # return torch.LongTensor(melody_tokens['input_ids']),

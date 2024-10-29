@@ -8,10 +8,13 @@ def chroma_from_pianoroll(main_piece, resolution=24):
     binary_piece = deepcopy(main_piece)
     binary_piece.binarize()
     # make chroma
-    chroma = binary_piece.tracks[0].pianoroll[:,:12]
+    # chroma = binary_piece.tracks[0].pianoroll[:,:12]
+    chroma = binary_piece.stack().max(axis=0)[:,:12]
     for i in range(12, 128-12, 12):
-        chroma = np.logical_or(chroma, binary_piece.tracks[0].pianoroll[:,i:(i+12)])
-    chroma[:,-6:] = np.logical_or(chroma[:,-6:], binary_piece.tracks[0].pianoroll[:,-6:])
+        # chroma = np.logical_or(chroma, binary_piece.tracks[0].pianoroll[:,i:(i+12)])
+        chroma = np.logical_or(chroma, binary_piece.stack().max(axis=0)[:,i:(i+12)])
+    # chroma[:,-6:] = np.logical_or(chroma[:,-6:], binary_piece.tracks[0].pianoroll[:,-6:])
+    chroma[:,-6:] = np.logical_or(chroma[:,-6:], binary_piece.stack().max(axis=0)[:,-6:])
     # quarter chroma resolution
     chroma_tmp = np.zeros( (1,12) )
     chroma_zoomed_out = None
@@ -34,10 +37,13 @@ def split_melody_accompaniment_from_pianoroll(pypianoroll_structure):
     melody_piece = deepcopy( pypianoroll_structure )
     accomp_piece = deepcopy( pypianoroll_structure )
 
-    mel_pr = melody_piece.tracks[0].pianoroll
-    acc_pr = accomp_piece.tracks[0].pianoroll
+    # mel_pr = melody_piece.tracks[0].pianoroll
+    # acc_pr = accomp_piece.tracks[0].pianoroll
+    mel_pr = melody_piece.stack().max(axis=0)
+    acc_pr = accomp_piece.stack().max(axis=0)
 
-    pr = np.array(melody_piece.tracks[0].pianoroll)
+    # pr = np.array(melody_piece.tracks[0].pianoroll)
+    pr = np.array(mel_pr)
     running_melody = -1
     i = 0
     # for i in range( pr.shape[0] ):
@@ -107,6 +113,14 @@ def split_melody_accompaniment_from_pianoroll(pypianoroll_structure):
         # end if
         i += 1
     # end for
+    # pass new pianorolls to track 0
+    melody_piece.tracks[0].pianoroll = mel_pr
+    accomp_piece.tracks[0].pianoroll = acc_pr
+    # remove all other tracks
+    while len(melody_piece.tracks) > 1:
+        del( melody_piece.tracks[-1] )
+    while len(accomp_piece.tracks) > 1:
+        del( accomp_piece.tracks[-1] )
     return melody_piece, accomp_piece
 # end split_melody_accompaniment
 
