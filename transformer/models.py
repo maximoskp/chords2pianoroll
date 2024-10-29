@@ -71,15 +71,26 @@ class MelCAT_base(nn.Module):
         melody_embeds = self.midi_encoder( input_ids=melody['input_ids'].to(self.dev), attention_mask=melody['attention_mask'].to(self.dev), output_hidden_states=True )
         melody_embeds = self.midi_rescaler(melody_embeds.last_hidden_state)
         chroma_embeds = self.chroma_encoder( input_ids=chroma['input_ids'].to(self.dev), attention_mask=chroma['attention_mask'].to(self.dev), output_hidden_states=True )
+        chroma_embeds = chroma_embeds.last_hidden_state
+        # pad chroma if needed - leave 128 time steps to be sure
+        if 128-chroma_embeds.shape[1] > 0:
+            chroma_embeds_shape = chroma_embeds.shape[1]
+            chroma_embeds = F.pad( chroma_embeds , ( 0,0,0, 128-chroma_embeds_shape ), 'constant', -1 )
+            chroma_attention_mask = F.pad( chroma['attention_mask'], ( 0,128-chroma_embeds_shape ), 'constant', 0 )
         # print(text_embeds.last_hidden_state.shape)
         # print(text_lstm_output.shape)
-        # print(melody_embeds.last_hidden_state.shape)
-        # print(chroma_embeds.last_hidden_state.shape)
+        # print(melody_embeds.shape)
+        # print(chroma_embeds.shape)
+        # print(chroma_attention_mask.shape)
+        # print(test_embeds.shape)
         # print(accomp['input_ids'].shape)
-        bart_encoder_input = torch.cat( (text_lstm_output[:,-1:,:], melody_embeds, chroma_embeds.last_hidden_state), 1 )
+        bart_encoder_input = torch.cat( (text_lstm_output[:,-1:,:], chroma_embeds, melody_embeds), 1 )
         # bart_encoder_input = torch.cat( (text_lstm_output[:,-1:,:], melody_embeds.last_hidden_state, chroma_embeds.last_hidden_state), 1 )
         # make masks
-        bart_encoder_mask = torch.cat( (torch.full( (text_lstm_output[:,-1:,:].shape[0], 1), self.bart_model.config.pad_token_id ), melody['attention_mask'], chroma['attention_mask'] ), 1 ).to(self.dev)
+        # bart_encoder_mask = torch.cat( (torch.full( (text_lstm_output[:,-1:,:].shape[0], 1), self.bart_model.config.pad_token_id ), \
+        #                                 chroma['attention_mask'], melody['attention_mask'] ), 1 ).to(self.dev)
+        bart_encoder_mask = torch.cat( (torch.full( (text_lstm_output[:,-1:,:].shape[0], 1), self.bart_model.config.pad_token_id ), \
+                                        chroma_attention_mask, melody['attention_mask'] ), 1 ).to(self.dev)
         # print(bart_encoder_input.shape)
         encoder_outputs = self.bart_model.model.encoder( inputs_embeds=bart_encoder_input[:,:self.bart_model.config.max_position_embeddings,:], attention_mask=bart_encoder_mask[:,:self.bart_model.config.max_position_embeddings] )
         # print(encoder_outputs.last_hidden_state.shape)
@@ -118,8 +129,13 @@ class MelCAT_base_tokens(nn.Module):
     # end init
 
     def forward(self, melody, chroma, accomp, labels): # TODO: add optional accomp input (for continuing composition) and labels (for loss calculation)
-        bart_encoder_input = torch.cat( (melody['input_ids'], chroma['input_ids']), 1 ).to(self.dev)
-        bart_encoder_mask = torch.cat( (melody['attention_mask'], chroma['attention_mask'] ), 1 ).to(self.dev)
+        # pad chroma if needed - leave 128 time steps to be sure
+        if 128-chroma['input_ids'].shape[1] > 0:
+            chroma_embeds_shape = chroma['input_ids'].shape[1]
+            chroma_ids = F.pad( chroma['input_ids'] , ( 0, 128-chroma_embeds_shape ), 'constant', self.bart_model.config.pad_token_id )
+            chroma_attention_mask = F.pad( chroma['attention_mask'], ( 0,128-chroma_embeds_shape ), 'constant', 0 )
+        bart_encoder_input = torch.cat( (chroma_ids, melody['input_ids']), 1 ).to(self.dev)
+        bart_encoder_mask = torch.cat( (chroma_attention_mask, melody['attention_mask'] ), 1 ).to(self.dev)
 
         vocab_output = self.bart_model(
             input_ids=bart_encoder_input[:,:self.bart_model.config.max_position_embeddings],
