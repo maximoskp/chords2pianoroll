@@ -68,7 +68,7 @@ DEFAULT_V_MEL = 70
 DEFAULT_V_ACC = 50
 DEFAULT_V_CHD = 50
 
-temperature = 1
+temperature = 0.5
 
 # TODO: bpm should come as an input from arguments
 bpm = 120

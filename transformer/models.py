@@ -55,7 +55,7 @@ class MelCAT_base(nn.Module):
                             hidden_size=256, 
                             batch_first=True).to(self.dev)
         # self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/checkpoint-46080').to(self.dev)
-        self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/checkpoint-24064').to(self.dev)
+        self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/checkpoint-28680').to(self.dev)
         self.midi_rescaler = nn.Linear(512, 256).to(self.dev)
         self.chroma_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/chroma_mlm_tiny/checkpoint-14336').to(self.dev)
         self.bart_model = BartForConditionalGeneration(bart_config).to(self.dev)
