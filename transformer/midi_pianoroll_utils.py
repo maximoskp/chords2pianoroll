@@ -2,6 +2,7 @@ import numpy as np
 from copy import deepcopy
 import io
 import symusic
+import matplotlib.pyplot as plt
 
 def chroma_from_pianoroll(main_piece, resolution=24):
     # first binarize a new deep copy
@@ -23,13 +24,21 @@ def chroma_from_pianoroll(main_piece, resolution=24):
         if (i+1)%resolution == 0:
             if chroma_zoomed_out is None:
                 chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
+                chroma_tmp = np.zeros( (1,12) )
             else:
                 chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
+                chroma_tmp = np.zeros( (1,12) )
     if np.sum( chroma_tmp ) > 0:
         if chroma_zoomed_out is None:
             chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
         else:
             chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
+    # print('chroma.shape: ', chroma.shape)
+    # print('chroma_zoomed_out.shape: ', chroma_zoomed_out.shape)
+    # plt.imshow(chroma)
+    # plt.show()
+    # plt.imshow(chroma_zoomed_out)
+    # plt.show()
     return chroma_zoomed_out
 # end chroma_from_pianoroll
 

@@ -108,7 +108,7 @@ class LiveMelCATDataset(Dataset):
         # split melody - accompaniment
         melody_piece, accomp_piece = mpu.split_melody_accompaniment_from_pianoroll( new_piece )
         # keep chroma from accompaniment
-        chroma_zoomed_out = mpu.chroma_from_pianoroll(accomp_piece)
+        chroma_zoomed_out = mpu.chroma_from_pianoroll(accomp_piece, resolution=main_piece.resolution)
         # tokenize chroma to text tokens
         tokenized_chroma = self.binary_chroma_tokenizer(chroma_zoomed_out)
         chroma_string = ' '.join( tokenized_chroma['tokens'] )
