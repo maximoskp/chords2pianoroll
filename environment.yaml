@@ -1,0 +1,11 @@
+# environment.yaml
+
+name: chart2accomp
+channels:
+  - conda-forge
+dependencies:
+  - python==3.11.5
+  - anaconda
+  - pip
+  - pip:
+    - -r file:requirements.txt

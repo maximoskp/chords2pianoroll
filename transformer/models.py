@@ -42,6 +42,11 @@ model = BartForConditionalGeneration(bart_config)
 
 '''
 
+CHROMA_PAD = 550
+
+models_folder = '/media/maindisk/maximos/data/pretrained_models/'
+# models_folder = '/media/datadisk/data/pretrained_models/'
+
 class MelCAT_base(nn.Module):
     def __init__(self, bart_config, gpu=None):
         super(MelCAT_base, self).__init__()
@@ -54,10 +59,11 @@ class MelCAT_base(nn.Module):
         self.text_lstm = nn.LSTM(input_size=768, 
                             hidden_size=256, 
                             batch_first=True).to(self.dev)
-        # self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/midi_mlm_tiny/checkpoint-46080').to(self.dev)
-        self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/checkpoint-28680').to(self.dev)
+        # self.midi_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/checkpoint-28680').to(self.dev)
+        self.midi_encoder = RobertaModel.from_pretrained(models_folder+'pop_midi_mlm_base/checkpoint-28680').to(self.dev)
         self.midi_rescaler = nn.Linear(512, 256).to(self.dev)
-        self.chroma_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/chroma_mlm_tiny/checkpoint-14336').to(self.dev)
+        # self.chroma_encoder = RobertaModel.from_pretrained('/media/datadisk/data/pretrained_models/chroma_mlm_tiny/checkpoint-14336').to(self.dev)
+        self.chroma_encoder = RobertaModel.from_pretrained(models_folder+'chroma_mlm_tiny/checkpoint-14336').to(self.dev)
         self.bart_model = BartForConditionalGeneration(bart_config).to(self.dev)
         # print('initialized')
     # end init
@@ -72,11 +78,11 @@ class MelCAT_base(nn.Module):
         melody_embeds = self.midi_rescaler(melody_embeds.last_hidden_state)
         chroma_embeds = self.chroma_encoder( input_ids=chroma['input_ids'].to(self.dev), attention_mask=chroma['attention_mask'].to(self.dev), output_hidden_states=True )
         chroma_embeds = chroma_embeds.last_hidden_state
-        # pad chroma if needed - leave 128 time steps to be sure
-        if 128-chroma_embeds.shape[1] > 0:
+        # pad chroma if needed - leave CHROMA_PAD time steps to be sure
+        if CHROMA_PAD-chroma_embeds.shape[1] > 0:
             chroma_embeds_shape = chroma_embeds.shape[1]
-            chroma_embeds = F.pad( chroma_embeds , ( 0,0,0, 128-chroma_embeds_shape ), 'constant', -1 )
-            chroma_attention_mask = F.pad( chroma['attention_mask'], ( 0,128-chroma_embeds_shape ), 'constant', 0 )
+            chroma_embeds = F.pad( chroma_embeds , ( 0,0,0, CHROMA_PAD-chroma_embeds_shape ), 'constant', -1 )
+            chroma_attention_mask = F.pad( chroma['attention_mask'], ( 0,CHROMA_PAD-chroma_embeds_shape ), 'constant', 0 )
         # print(text_embeds.last_hidden_state.shape)
         # print(text_lstm_output.shape)
         # print(melody_embeds.shape)
@@ -129,11 +135,11 @@ class MelCAT_base_tokens(nn.Module):
     # end init
 
     def forward(self, melody, chroma, accomp, labels): # TODO: add optional accomp input (for continuing composition) and labels (for loss calculation)
-        # pad chroma if needed - leave 128 time steps to be sure
-        if 128-chroma['input_ids'].shape[1] > 0:
+        # pad chroma if needed - leave CHROMA_PAD time steps to be sure
+        if CHROMA_PAD-chroma['input_ids'].shape[1] > 0:
             chroma_embeds_shape = chroma['input_ids'].shape[1]
-            chroma_ids = F.pad( chroma['input_ids'] , ( 0, 128-chroma_embeds_shape ), 'constant', self.bart_model.config.pad_token_id )
-            chroma_attention_mask = F.pad( chroma['attention_mask'], ( 0,128-chroma_embeds_shape ), 'constant', 0 )
+            chroma_ids = F.pad( chroma['input_ids'] , ( 0, CHROMA_PAD-chroma_embeds_shape ), 'constant', self.bart_model.config.pad_token_id )
+            chroma_attention_mask = F.pad( chroma['attention_mask'], ( 0,CHROMA_PAD-chroma_embeds_shape ), 'constant', 0 )
         bart_encoder_input = torch.cat( (chroma_ids, melody['input_ids']), 1 ).to(self.dev)
         bart_encoder_mask = torch.cat( (chroma_attention_mask, melody['attention_mask'] ), 1 ).to(self.dev)
 

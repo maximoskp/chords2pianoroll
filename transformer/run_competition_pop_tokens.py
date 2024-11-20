@@ -24,10 +24,13 @@ import symusic
 import json2midi_utils as j2m
 import pretty_midi as pm
 
-MAX_LENGTH = 1024
+MAX_LENGTH = 2048
 
-roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer')
-remi_tokenizer = REMI(params=Path('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_REMI_BPE_tokenizer.json'))
+models_folder = '/media/maindisk/maximos/data/pretrained_models/'
+# models_folder = '/media/datadisk/data/pretrained_models/'
+
+roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained(models_folder+'pop_midi_mlm_base/pop_wordlevel_tokenizer')
+remi_tokenizer = REMI(params=Path(models_folder+'pop_midi_mlm_base/pop_REMI_BPE_tokenizer.json'))
 
 bart_config = BartConfig(
     vocab_size=roberta_tokenizer_midi.vocab_size,
@@ -52,8 +55,8 @@ bart_config = BartConfig(
 run_on_gpu = False
 
 if run_on_gpu:
-    dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = MelCAT_base_tokens(bart_config, gpu=0).to(dev)
+    dev = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    model = MelCAT_base_tokens(bart_config, gpu=2).to(dev)
     checkpoint = torch.load('saved_models/bart_pop_tokens/bart_pop_tokens.pt', weights_only=True)
 else:
     dev = torch.device("cpu")

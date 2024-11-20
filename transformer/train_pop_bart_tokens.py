@@ -16,9 +16,13 @@ from tqdm import tqdm
 
 load_saved = False
 
-MAX_LENGTH = 1024
+MAX_LENGTH = 2048
 
-roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer')
+models_folder = '/media/maindisk/maximos/data/pretrained_models/'
+data_folder = '/media/maindisk/maximos/data/POP909/aug_folder'
+
+# roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer')
+roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained(models_folder+'pop_midi_mlm_base/pop_wordlevel_tokenizer')
 
 bart_config = BartConfig(
     vocab_size=roberta_tokenizer_midi.vocab_size,
@@ -43,9 +47,11 @@ bart_config = BartConfig(
 )
 
 
-dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+GPU_IDX = 1
+
+dev = torch.device("cuda:"+str(GPU_IDX) if torch.cuda.is_available() else "cpu")
 # dev = torch.device("cpu")
-model = MelCAT_base_tokens(bart_config, gpu=0)
+model = MelCAT_base_tokens(bart_config, gpu=GPU_IDX)
 
 if load_saved:
     checkpoint = torch.load('saved_models/bart_pop_tokens/bart_pop_tokens.pt', weights_only=True)
@@ -67,7 +73,8 @@ optimizer = torch.optim.AdamW( model.parameters(), lr=0.0001)
 
 loss_fct = CrossEntropyLoss(ignore_index=roberta_tokenizer_midi.pad_token_id)
 
-midifolder = '/media/datadisk/datasets/POP909/aug_folder'
+midifolder = data_folder
+# midifolder = '/media/datadisk/datasets/POP909/aug_folder'
 # midifolder = '/media/datadisk/data/Giant_PIano/'
 dataset = LiveMelCATDataset(midifolder, segment_size=40, resolution=4, max_seq_len=1024, only_beginning=True)
 

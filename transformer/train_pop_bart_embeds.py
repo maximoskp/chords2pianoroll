@@ -16,9 +16,15 @@ from tqdm import tqdm
 
 load_saved = False
 
-MAX_LENGTH = 1024
+MAX_LENGTH = 2048
 
-roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer')
+models_folder = '/media/maindisk/maximos/data/pretrained_models/'
+data_folder = '/media/maindisk/maximos/data/POP909/aug_folder'
+# data_folder = '/media/datadisk/datasets/POP909/aug_folder'
+# models_folder = '/media/datadisk/data/pretrained_models/'
+
+# roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained('/media/datadisk/data/pretrained_models/pop_midi_mlm_base/pop_wordlevel_tokenizer')
+roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained(models_folder+'pop_midi_mlm_base/pop_wordlevel_tokenizer')
 
 bart_config = BartConfig(
     vocab_size=roberta_tokenizer_midi.vocab_size,
@@ -69,7 +75,7 @@ loss_fct = CrossEntropyLoss(ignore_index=roberta_tokenizer_midi.pad_token_id)
 
 # optimizer = torch.optim.AdamW( model.parameters(), lr=0.001)
 
-midifolder = '/media/datadisk/datasets/POP909/aug_folder'
+midifolder = data_folder
 # midifolder = '/media/datadisk/datasets/GiantMIDI-PIano/midis_v1.2/midis'
 # midifolder = '/media/datadisk/data/Giant_PIano/'
 dataset = LiveMelCATDataset(midifolder, segment_size=40, resolution=4, max_seq_len=1024, only_beginning=True)
