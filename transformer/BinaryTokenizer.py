@@ -1,4 +1,6 @@
 import numpy as np
+# from GeneralChordType.HARM_consonanceChordRecognizer_func import HARM_consonanceChordRecognizer as gct
+from GCT_functions import get_singe_GCT_of_chord as gct
 from transformers import PreTrainedTokenizerBase
 # https://huggingface.co/docs/transformers/main/en/internal/tokenization_utils
 
@@ -163,11 +165,11 @@ class GCTSerialChromaTokenizer(PreTrainedTokenizerBase):
         self.bos_token = 'bos'
         self.eos_token = 'eos'
         self.unk_token = 'unk'
-        self.root_offset = 4
-        self.type_offset = 16
-        self.extension_offset = 28
+        self.empty_chord = 'emp'
+        self.root_offset = 5
+        self.type_offset = self.root_offset + 12
         self.max_num_segments = max_num_segments
-        self.segment_offset = 40
+        self.segment_offset = self.root_offset + 12
         self.pad_to_length = pad_to_length
         self.vocab_size = self.segment_offset + max_num_segments
         self.model_max_length = model_max_length # to be updated as data are tokenized or set by hand for online data
@@ -175,16 +177,15 @@ class GCTSerialChromaTokenizer(PreTrainedTokenizerBase):
             'pad': 0,
             'bos': 1,
             'eos': 2,
-            'unk': 3
+            'unk': 3,
+            'emp': 4
         }
         for i in range(self.root_offset, self.root_offset+12, 1):
             self.vocab['r_' + str(i-self.root_offset)] = i
         for i in range(self.type_offset, self.type_offset+12, 1):
             self.vocab['t_' + str(i-self.type_offset)] = i
-        for i in range(self.extension_offset, self.extension_offset+12, 1):
-            self.vocab['e_' + str(i-self.extension_offset)] = i
-        for i in range( 0, max_num_segments, 1 ):
-            self.vocab['seg_' + str(i)] = i
+        for i in range( self.segment_offset, self.segment_offset+max_num_segments, 1 ):
+            self.vocab['seg_' + str(i-self.segment_offset)] = i
     # end init
     
     def fit(self, corpus):
@@ -233,12 +234,27 @@ class GCTSerialChromaTokenizer(PreTrainedTokenizerBase):
                 segment_idx = segment_idx % self.max_num_segments
             # check if chord pcs exist
             c = chroma[i,:]
-            nzc = np.nonzero(c)[0]
-            for i in range(nzc.shape[0]):
-                tokens.append( 'c_' + str(nzc[i]) )
-                ids.append( int(nzc[i] + self.chord_offset) )
-            tokens.append( 'seg_' + str( segment_idx ) )
-            ids.append(self.segment_offset + segment_idx)
+            if c.sum() == 0:
+                tokens.append('emp')
+                ids.append(self.vocab['emp'])
+            else:
+                nzc = np.nonzero(c)[0]
+                try:
+                    g = list(gct(nzc))
+                except:
+                    print('GCT failed: ', nzc)
+                    g = [ self.vocab['unk'] ]
+                # root
+                r = g[0]
+                tokens.append('r_'+str(r))
+                ids.append(int(r + self.root_offset))
+                # type
+                if len(g) > 2:
+                    for i in range(len(g[2:])):
+                        tokens.append( 't_' + str( (g[2+i]+r)%12 ) )
+                        ids.append( int( (g[2+i]+r)%12 + self.type_offset) )
+                tokens.append( 'seg_' + str( segment_idx ) )
+                ids.append(self.segment_offset + segment_idx)
         return tokens, ids
     # end sequence_serialization
 # end class GCTSerialChromaTokenizer

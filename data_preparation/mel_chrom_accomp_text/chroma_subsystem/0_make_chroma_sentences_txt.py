@@ -40,26 +40,17 @@ with open(error_log_file_path, 'w') as the_file:
     the_file.write('')
 
 for i in tqdm(range(len( datalist ))):
-    main_piece = pypianoroll.read(datafolder + os.sep + datalist[i], resolution=resolution)
-    # make deepcopy
-    new_piece = deepcopy(main_piece)
-    # keep accompaniment
-    _, accomp_piece = mpu.split_melody_accompaniment_from_pianoroll(new_piece)
-    chroma_zoomed_out = mpu.chroma_from_pianoroll(accomp_piece, resolution=resolution)
-    tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
-    with open(sentences_file_path, 'a', encoding='utf-8') as the_file:
-        the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
-    # try:
-    #     main_piece = pypianoroll.read(datafolder + os.sep + datalist[i], resolution=resolution)
-    #     # make deepcopy
-    #     new_piece = deepcopy(main_piece)
-    #     # keep accompaniment
-    #     _, accomp_piece = mpu.split_melody_accompaniment_from_pianoroll(new_piece)
-    #     chroma_zoomed_out = mpu.chroma_from_pianoroll(accomp_piece, resolution=resolution)
-    #     tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
-    #     with open(sentences_file_path, 'a', encoding='utf-8') as the_file:
-    #         the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
-    # except:
-    #     print('ERROR with ', datalist[i])
-    #     with open(error_log_file_path, 'a') as the_file:
-    #         the_file.write(datalist[i] + '\n')
+    try:
+        main_piece = pypianoroll.read(datafolder + os.sep + datalist[i], resolution=resolution)
+        # make deepcopy
+        new_piece = deepcopy(main_piece)
+        # keep accompaniment
+        _, accomp_piece = mpu.split_melody_accompaniment_from_pianoroll(new_piece)
+        chroma_zoomed_out = mpu.chroma_from_pianoroll(accomp_piece, resolution=resolution)
+        tokenized_chroma = binary_tokenizer(chroma_zoomed_out)
+        with open(sentences_file_path, 'a', encoding='utf-8') as the_file:
+            the_file.write(' '.join(tokenized_chroma['tokens']) + '\n')
+    except:
+        print('ERROR with ', datalist[i])
+        with open(error_log_file_path, 'a') as the_file:
+            the_file.write(datalist[i] + '\n')

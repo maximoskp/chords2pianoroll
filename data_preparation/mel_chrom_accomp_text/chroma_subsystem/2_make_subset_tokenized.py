@@ -10,9 +10,9 @@ import pickle
 MAX_LENGTH = 1024
 
 # Load the trained tokenizer
-tokenizer = RobertaTokenizerFast.from_pretrained('../../data/chroma_wordlevel_tokenizer/' , max_len=MAX_LENGTH)
+tokenizer = RobertaTokenizerFast.from_pretrained('../../data/gct_wordlevel_tokenizer/' , max_len=MAX_LENGTH)
 
-sentences_file_path = '../../data/chroma_accompaniment_sentences.txt'
+sentences_file_path = '../../data/gct_accompaniment_sentences.txt'
 
 # Open and read the text file where each line is a new instance
 with open(sentences_file_path, 'r', encoding='utf-8') as file:
@@ -68,5 +68,5 @@ chroma_dataset = {
     'test_dataset': test_dataset
 }
 
-with open('../../data/chroma_dataset_part.pickle', 'wb') as handle:
+with open('../../data/gct_dataset_part.pickle', 'wb') as handle:
     pickle.dump(chroma_dataset, handle, protocol=pickle.HIGHEST_PROTOCOL)

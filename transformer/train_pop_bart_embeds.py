@@ -78,7 +78,8 @@ loss_fct = CrossEntropyLoss(ignore_index=roberta_tokenizer_midi.pad_token_id)
 midifolder = data_folder
 # midifolder = '/media/datadisk/datasets/GiantMIDI-PIano/midis_v1.2/midis'
 # midifolder = '/media/datadisk/data/Giant_PIano/'
-dataset = LiveMelCATDataset(midifolder, segment_size=40, resolution=4, max_seq_len=1024, only_beginning=True)
+dataset = LiveMelCATDataset(midifolder, segment_size=40, resolution=4, \
+    max_seq_len=1024, only_beginning=True, gct_tokenization=False)
 
 custom_collate_fn = MelCATCollator(max_seq_lens=dataset.max_seq_lengths, padding_values=dataset.padding_values)
 

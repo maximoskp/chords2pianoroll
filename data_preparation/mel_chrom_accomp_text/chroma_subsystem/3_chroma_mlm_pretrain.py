@@ -8,7 +8,7 @@ MAX_LENGTH = 1024
 
 # Load the trained tokenizer
 # tokenizer = RobertaTokenizerFast.from_pretrained('../data/chroma_tokenizer_1/' , max_len=MAX_LENGTH)
-tokenizer = RobertaTokenizerFast.from_pretrained('../../data/chroma_wordlevel_tokenizer/' , max_len=MAX_LENGTH)
+tokenizer = RobertaTokenizerFast.from_pretrained('../../data/gct_wordlevel_tokenizer/' , max_len=MAX_LENGTH)
 
 # Data collator for MLM (will handle random masking)
 data_collator = DataCollatorForLanguageModeling(
@@ -32,7 +32,7 @@ model_config = RobertaConfig(
 
 model = RobertaForMaskedLM(model_config)
 
-with open('../../data/chroma_dataset.pickle', "rb") as input_file:
+with open('../../data/gct_dataset.pickle', "rb") as input_file:
     chroma_dataset = pickle.load(input_file)
 # with open('../../data/chroma_dataset_part.pickle', "rb") as input_file:
 #     chroma_dataset = pickle.load(input_file)
@@ -92,11 +92,11 @@ else:
     (f"FP16_float used")
 print(f"Using CUDA as {USE_CUDA}")
 
-batch_size = 50
+batch_size = 40
 epoch = 10
 
 training_config = TrainingArguments(
-    output_dir="../../data/chroma_mlm_tiny_3e-4_100",
+    output_dir="../../data/gct_mlm_tiny",
     overwrite_output_dir=False,
     do_train=True,
     do_eval=True,
@@ -115,7 +115,7 @@ training_config = TrainingArguments(
     lr_scheduler_type="linear",
     logging_strategy="steps",
     # max_steps=100*(673191//(64*8)),
-    max_steps=(709356//batch_size)*epoch,
+    max_steps=(67720//batch_size)*epoch,
     # max_steps=1000,
     # num_train_epochs=10,
     logging_steps=128,

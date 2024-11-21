@@ -45,16 +45,16 @@ def chroma_from_pianoroll(main_piece, resolution=24):
         chroma_tmp += chroma[i,:]
         if (i+1)%resolution == 0:
             if chroma_zoomed_out is None:
-                chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
+                chroma_zoomed_out = np.logical_and( chroma_tmp >= np.mean( chroma_tmp ), chroma_tmp > 0 )
                 chroma_tmp = np.zeros( (1,12) )
             else:
-                chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
+                chroma_zoomed_out = np.vstack( (chroma_zoomed_out, np.logical_and( chroma_tmp >= np.mean( chroma_tmp ), chroma_tmp > 0 )) )
                 chroma_tmp = np.zeros( (1,12) )
     if np.sum( chroma_tmp ) > 0:
         if chroma_zoomed_out is None:
-            chroma_zoomed_out = chroma_tmp >= np.mean( chroma_tmp )
+            chroma_zoomed_out = np.logical_and( chroma_tmp >= np.mean( chroma_tmp ), chroma_tmp > 0 )
         else:
-            chroma_zoomed_out = np.vstack( (chroma_zoomed_out, chroma_tmp >= np.mean( chroma_tmp )) )
+            chroma_zoomed_out = np.vstack( (chroma_zoomed_out, np.logical_and( chroma_tmp >= np.mean( chroma_tmp ), chroma_tmp > 0 )) )
     # print('chroma.shape: ', chroma.shape)
     # print('chroma_zoomed_out.shape: ', chroma_zoomed_out.shape)
     # plt.imshow(chroma)
@@ -67,7 +67,7 @@ def chroma_from_pianoroll(main_piece, resolution=24):
 def split_melody_accompaniment_from_pianoroll(pypianoroll_structure, check_first_track=True):
     melody_piece = deepcopy( pypianoroll_structure )
     accomp_piece = deepcopy( pypianoroll_structure )
-    if check_first_track and is_first_track_melody(pypianoroll_structure):
+    if check_first_track and is_first_track_melody(pypianoroll_structure) and len(accomp_piece.tracks)>1 :
         mel_pr = melody_piece.tracks[0].pianoroll
         del( accomp_piece.tracks[0] )
         acc_pr = accomp_piece.stack().max(axis=0)

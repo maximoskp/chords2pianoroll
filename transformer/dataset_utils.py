@@ -6,7 +6,7 @@ from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 
 # from ..data_preparation.mel_chrom_accomp_text.chroma_subsystem.BinaryTokenizer import SimpleSerialChromaTokenizer
-from BinaryTokenizer import SimpleSerialChromaTokenizer
+from BinaryTokenizer import SimpleSerialChromaTokenizer, GCTSerialChromaTokenizer
 from miditok import REMI, TokenizerConfig
 from transformers import RobertaTokenizer, RobertaTokenizerFast, RobertaModel
 
@@ -33,6 +33,7 @@ models_path = '/media/maindisk/maximos/data/pretrained_models/'
 
 remi_path = Path(models_path+'pop_midi_mlm_base/pop_REMI_BPE_tokenizer.json')
 chroma_tokenizer_path = models_path+'chroma_mlm_tiny/chroma_wordlevel_tokenizer'
+gct_tokenizer_path = models_path+'gct_mlm_tiny/gct_wordlevel_tokenizer'
 midi_tokenizer_path = models_path+'pop_midi_mlm_base/pop_wordlevel_tokenizer'
 
 text_sentences = ['a pop accompaniment', 'accompaniment in the style of pop', 'a pop piece', \
@@ -48,9 +49,13 @@ class LiveMelCATDataset(Dataset):
         self.max_seq_len = max_seq_len-2
         self.only_beginning = only_beginning
         self.ignore_short_pieces = ignore_short_pieces
-        self.binary_chroma_tokenizer = SimpleSerialChromaTokenizer()
+        if gct_tokenization:
+            self.binary_chroma_tokenizer = GCTSerialChromaTokenizer()
+            self.roberta_tokenizer_chroma = RobertaTokenizerFast.from_pretrained(gct_tokenizer_path)
+        else:
+            self.binary_chroma_tokenizer = SimpleSerialChromaTokenizer()
+            self.roberta_tokenizer_chroma = RobertaTokenizerFast.from_pretrained(chroma_tokenizer_path)
         self.remi_tokenizer = REMI(params=remi_path)
-        self.roberta_tokenizer_chroma = RobertaTokenizerFast.from_pretrained(chroma_tokenizer_path)
         self.roberta_tokenizer_midi = RobertaTokenizerFast.from_pretrained(midi_tokenizer_path)
         self.roberta_tokenizer_text = RobertaTokenizer.from_pretrained('roberta-base')
         self.padding_values = {

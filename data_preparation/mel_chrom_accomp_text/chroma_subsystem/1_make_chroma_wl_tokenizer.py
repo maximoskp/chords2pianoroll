@@ -7,10 +7,10 @@ from tokenizers import normalizers
 from transformers import RobertaTokenizerFast
 
 # Initialize the tokenizer with the WordLevel model
-tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
+tokenizer = Tokenizer(WordLevel(unk_token="<unk>"))
 
 # Set normalizers (optional)
-tokenizer.normalizer = normalizers.Sequence([NFD(), Lowercase(), StripAccents()])
+# tokenizer.normalizer = normalizers.Sequence([NFD(), Lowercase(), StripAccents()])
 
 # Use Whitespace pre-tokenizer to split by whitespace
 tokenizer.pre_tokenizer = Whitespace()
@@ -21,15 +21,16 @@ trainer = WordLevelTrainer(
 )
 
 # Prepare your dataset
-sentences_file_path = '../../data/chroma_accompaniment_sentences.txt'
+# sentences_file_path = '../../data/chroma_accompaniment_sentences.txt'
+sentences_file_path = '../../data/gct_accompaniment_sentences.txt'
 files = [sentences_file_path]
 
 # Train the tokenizer (vocab_size will be inferred from the data)
 tokenizer.train(files, trainer)
 
 # Save the tokenizer
-tokenizer.save("../../data/chroma_wordlevel_tokenizer.json")
+tokenizer.save("../../data/gct_wordlevel_tokenizer.json")
 
 # save the roberta tokenizer
 wrapped_tokenizer = RobertaTokenizerFast(tokenizer_object=tokenizer)
-wrapped_tokenizer.save_pretrained('../../data/chroma_wordlevel_tokenizer')
+wrapped_tokenizer.save_pretrained('../../data/gct_wordlevel_tokenizer')
